@@ -44,11 +44,17 @@ func main() {
 		case "start":
 			_, ok := sessions[mc.ChannelID]
 			if ok {
-				s.ChannelMessageSend(mc.ChannelID, "ゲームは既に開始されています")
+				_, err := s.ChannelMessageSend(mc.ChannelID, "ゲームは既に開始されています")
+				if err != nil {
+					log.Println(err)
+				}
 				return
 			}
 			sessions[mc.ChannelID] = game.NewSession()
-			s.ChannelMessageSend(mc.ChannelID, "ゲームを開始します")
+			_, err := s.ChannelMessageSend(mc.ChannelID, "ゲームを開始します")
+			if err != nil {
+				log.Println(err)
+			}
 		case "join":
 			session, ok := sessions[mc.ChannelID]
 			if !ok {
