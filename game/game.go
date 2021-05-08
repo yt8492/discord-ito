@@ -17,7 +17,7 @@ func init() {
 }
 
 type Session struct {
-	players []*Player
+	playersMap map[string]*Player
 	candidates []int
 	mutex sync.Mutex
 }
@@ -31,7 +31,7 @@ func NewSession() *Session {
 	candidates := make([]int, 101)
 	copy(candidates, initialSeq)
 	return &Session{
-		players: nil,
+		playersMap: make(map[string]*Player),
 		candidates: candidates,
 		mutex: sync.Mutex{},
 	}
@@ -40,22 +40,25 @@ func NewSession() *Session {
 func (s *Session) JoinUser(user *discordgo.User) int {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+	player, ok := s.playersMap[user.ID]
+	if ok {
+		return player.number
+	}
 	i := rand.Intn(len(s.candidates))
 	num := s.candidates[i]
 	s.candidates = append(s.candidates[:i], s.candidates[i + 1:]...)
-	player := &Player{
+	player = &Player{
 		user:   user,
 		number: num,
 	}
-	s.players = append(s.players, player)
+	s.playersMap[user.ID] = player
 	return num
 }
 
 func (s *Session) GetPlayerNumber(discordUserId string) (int, error) {
-	for _, player := range s.players {
-		if player.user.ID == discordUserId {
-			return player.number, nil
-		}
+	player, ok := s.playersMap[discordUserId]
+	if ok {
+		return player.number, nil
 	}
 	return 0, errors.New("player not found")
 }
