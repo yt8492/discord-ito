@@ -35,7 +35,6 @@ func main() {
 		log.Fatal(err)
 	}
 	discord.AddHandler(func(s *discordgo.Session, mc *discordgo.MessageCreate) {
-		log.Println(mc.Content)
 		if mc.Author.ID == s.State.User.ID || !strings.HasPrefix(mc.Content, conf.Prefix) {
 			return
 		}
