@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 )
 
@@ -18,10 +19,10 @@ type Config struct {
 }
 
 var conf Config
-var sessions map[string]*game.Session
+var sessions sync.Map
 
 func init() {
-	sessions = make(map[string]*game.Session)
+	sessions = sync.Map{}
 	c, _ := ini.Load("config.ini")
 	conf = Config{
 		Prefix: c.Section("config").Key("prefix").MustString("$"),
@@ -41,7 +42,7 @@ func main() {
 		command := strings.TrimPrefix(mc.Content, conf.Prefix)
 		switch command {
 		case "start":
-			_, ok := sessions[mc.ChannelID]
+			_, ok := sessions.Load(mc.ChannelID)
 			if ok {
 				_, err := s.ChannelMessageSend(mc.ChannelID, "ゲームは既に開始されています")
 				if err != nil {
@@ -49,13 +50,13 @@ func main() {
 				}
 				return
 			}
-			sessions[mc.ChannelID] = game.NewSession()
+			sessions.Store(mc.ChannelID, game.NewSession())
 			_, err := s.ChannelMessageSend(mc.ChannelID, "ゲームを開始します")
 			if err != nil {
 				log.Println(err)
 			}
 		case "join":
-			session, ok := sessions[mc.ChannelID]
+			stored, ok := sessions.Load(mc.ChannelID)
 			if !ok {
 				_, err := s.ChannelMessageSend(mc.ChannelID, conf.Prefix + "start でゲームを開始してください")
 				if err != nil {
@@ -63,6 +64,7 @@ func main() {
 				}
 				return
 			}
+			session, _ := stored.(game.Session)
 			num := session.JoinUser(mc.Author)
 			dmChannel, err := s.UserChannelCreate(mc.Author.ID)
 			if err != nil {
@@ -74,7 +76,7 @@ func main() {
 				log.Println(err)
 			}
 		case "open":
-			session, ok := sessions[mc.ChannelID]
+			stored, ok := sessions.Load(mc.ChannelID)
 			if !ok {
 				_, err := s.ChannelMessageSend(mc.ChannelID, conf.Prefix + "start でゲームを開始してください")
 				if err != nil {
@@ -82,6 +84,7 @@ func main() {
 				}
 				return
 			}
+			session, _ := stored.(game.Session)
 			num, err := session.GetPlayerNumber(mc.Author.ID)
 			if err != nil {
 				log.Println(err)
@@ -92,7 +95,7 @@ func main() {
 				log.Println(err)
 			}
 		case "end":
-			_, ok := sessions[mc.ChannelID]
+			_, ok := sessions.Load(mc.ChannelID)
 			if !ok {
 				_, err := s.ChannelMessageSend(mc.ChannelID, conf.Prefix + "start でゲームを開始してください")
 				if err != nil {
@@ -100,7 +103,7 @@ func main() {
 				}
 				return
 			}
-			delete(sessions, mc.ChannelID)
+			sessions.Delete(mc.ChannelID)
 			_, err := s.ChannelMessageSend(mc.ChannelID, "ゲームを終了しました")
 			if err != nil {
 				log.Println(err)
