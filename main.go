@@ -35,6 +35,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	discord.AddHandler(func(s *discordgo.Session, mc *discordgo.MessageCreate) {
 		if mc.Author.ID == s.State.User.ID || !strings.HasPrefix(mc.Content, conf.Prefix) {
 			return
@@ -64,7 +65,7 @@ func main() {
 				}
 				return
 			}
-			session, _ := stored.(game.Session)
+			session, _ := stored.(*game.Session)
 			num := session.JoinUser(mc.Author)
 			dmChannel, err := s.UserChannelCreate(mc.Author.ID)
 			if err != nil {
@@ -84,7 +85,7 @@ func main() {
 				}
 				return
 			}
-			session, _ := stored.(game.Session)
+			session, _ := stored.(*game.Session)
 			num, err := session.GetPlayerNumber(mc.Author.ID)
 			if err != nil {
 				log.Println(err)
@@ -110,6 +111,7 @@ func main() {
 			}
 		}
 	})
+	discord.Identify.Intents = discordgo.IntentGuildMessages
 	err = discord.Open()
 	if err != nil {
 		log.Fatal(err)

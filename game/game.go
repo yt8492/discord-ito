@@ -2,9 +2,10 @@ package game
 
 import (
 	"errors"
-	"github.com/bwmarrin/discordgo"
 	"math/rand"
 	"sync"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 var initialSeq []int
